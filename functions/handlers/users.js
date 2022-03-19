@@ -48,7 +48,12 @@ exports.signup = async (req, res) => {
                 return data.user.getIdToken();
               })
               .then((token) => {
-                return res.json({ token });
+                return res.json({ 
+                  token,
+                  email: userRecord.email,
+                  displayName: userRecord.displayName,
+                  photoURL: userRecord.photoURL,
+                });
               })
               .catch((err) => {
                 console.log("else==========");
@@ -80,11 +85,16 @@ exports.login = (req, res) => {
   firebase
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
-    .then((data) => {
-      return data.user.getIdToken();
+    .then(async(data) => {
+      return {
+        token: await data.user.getIdToken(),
+        email:  data.user.email,
+        displayName:  data.user.displayName,
+        photoURL:  data.user.photoURL,
+      };
     })
-    .then((token) => {
-      return res.json({ token });
+    .then((data) => {
+      return res.json(data);
     })
     .catch((err) => {
       console.error(err);
