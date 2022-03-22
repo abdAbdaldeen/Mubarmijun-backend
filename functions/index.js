@@ -1,5 +1,6 @@
 const functions = require("firebase-functions");
 const app = require("express")();
+const cors = require('cors');
 const { makeAdmin } = require("./handlers/admin/users");
 const { addGroup } = require("./handlers/admin/groups");
 const fbAdminAuth = require("./util/fbAdminAuth");
@@ -10,6 +11,7 @@ const usersRouter = require("./routes/users");
 const votesRouter = require("./routes/votes");
 const { getGroup } = require("./handlers/groups");
 
+app.use(cors({origin: true}))
 // ************** public **********************
 // ============== user
 

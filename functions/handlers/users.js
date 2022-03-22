@@ -28,7 +28,7 @@ exports.signup = async (req, res) => {
     .catch(async (err) => {
       if (err.code === "auth/user-not-found") {
         // User doesn't exist yet, create it...
-        const noImg = "no-img.png";
+        // const noImg = "no-img.png";
         await admin
           .auth()
           .createUser({
@@ -36,7 +36,7 @@ exports.signup = async (req, res) => {
             emailVerified: false,
             password: newUser.password,
             displayName: newUser.name,
-            photoURL: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
+            // photoURL: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
             disabled: false,
           })
           .then(async (userRecord) => {
