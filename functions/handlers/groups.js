@@ -4,12 +4,12 @@ exports.getGroup = async (req, res) => {
   db.collection("groups")
     .get()
     .then((data) => {
-      let groups = [];
+      let groups = {};
       data.forEach((doc) => {
-        groups.push({
+        groups[doc.id] = {
           gID: doc.id,
           ...doc.data(),
-        });
+        };
       });
       return res.json(groups);
     })
