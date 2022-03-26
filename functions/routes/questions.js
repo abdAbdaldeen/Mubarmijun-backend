@@ -14,9 +14,9 @@ const {
 const fbAuth = require("../util/fbAuth");
 
 router.post("/add", fbAuth, add);
-router.post("/getFirst", getFirst);
+router.get("/getFirst/:groupID", getFirst);
 router.post("/getMore", getMore);
-router.post("/getAllFirst", getAllFirst);
+router.get("/getAllFirst", getAllFirst);
 router.post("/getAllMore", getAllMore);
 router.get("/getOne/:qID", getOne);
 router.get("/getOneLoggedIn/:qID", fbAuth, getOneLoggedIn);

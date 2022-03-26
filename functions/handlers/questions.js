@@ -17,8 +17,8 @@ exports.add = async (req, res) => {
               votesCount: 0,
               reportsCount: 0,
             };
-            db.collection("questions")
-              .add(newQuestion)
+            let id = newQuestion.title.replace(/ /g,'-')
+            db.collection("questions").doc().set(newQuestion)
               .then((doc) => {
                 const resQuestion = newQuestion;
                 resQuestion.qID = doc.id;
@@ -37,9 +37,8 @@ exports.add = async (req, res) => {
 };
 // ============================================================
 exports.getFirst = (req, res) => {
-  console.log(req.body.groupID);
   db.collection("questions")
-    .where("groupID", "==", req.body.groupID)
+    .where("groupID", "==", req.params.groupID)
     .orderBy("createdAt", "desc")
     .limit(6)
     .get()
@@ -87,7 +86,6 @@ exports.getMore = (req, res) => {
 // ============================================================
 // ============================================================
 exports.getAllFirst = (req, res) => {
-  console.log(req.body.groupID);
   db.collection("questions")
     .orderBy("createdAt", "desc")
     .limit(6)
