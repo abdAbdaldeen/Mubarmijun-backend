@@ -23,7 +23,7 @@ exports.signup = async (req, res) => {
     .auth()
     .getUserByEmail(newUser.email)
     .then((user) => {
-      return res.status(400).json({ email: "this email is already taken" });
+      return res.status(400).json({ error: "البريد الإلكتروني مستخدم بالفعل" });
     })
     .catch(async (err) => {
       if (err.code === "auth/user-not-found") {
@@ -56,20 +56,17 @@ exports.signup = async (req, res) => {
                 });
               })
               .catch((err) => {
-                console.log("else==========");
                 console.error(err);
-                return res.status(500).json({ error: err.code });
+                return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: err.code });
               });
             console.log(userRecord);
             console.log("Successfully created new user:", userRecord.uid);
           })
           .catch((error) => {
-            res.status(400).json(error);
-
-            console.log("Error creating new user:" + error.code);
+            return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: error.code });
           });
       } else {
-        res.status(500).json({ error: err.code });
+        return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: err.code });
       }
     });
 };
@@ -98,7 +95,18 @@ exports.login = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      return res.status(500).json({ error: err.code });
+      let errorMsg = ""
+      if (err.code === "auth/wrong-password") {
+        errorMsg = "كلمة المرور غير صحيحة"
+      } else if (err.code === "auth/user-not-found") {
+        errorMsg = "البريد الإلكتروني غير صحيح"
+      } else if (err.code === "auth/too-many-requests") {
+        errorMsg = "تم تعطيل الوصول إلى هذا الحساب مؤقتًا بسبب العديد من محاولات تسجيل الدخول الفاشلة. يمكنك استعادتها على الفور عن طريق إعادة تعيين كلمة المرور الخاصة بك أو يمكنك المحاولة مرة أخرى لاحقًا."
+      } 
+       else {
+        return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى" });
+      }
+      return res.status(400).json({ error: errorMsg });
     });
 };
 // ========================= get user data
