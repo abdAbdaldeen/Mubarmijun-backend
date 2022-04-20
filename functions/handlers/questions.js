@@ -1,4 +1,6 @@
 const { db, admin } = require("../util/admin");
+// const { getUserId } = require("../util/fbAuth");
+const { checkVote } = require("../util/votes");
 
 exports.add = async (req, res) => {
   db.doc("/coins/" + req.user.uid)
@@ -131,33 +133,58 @@ exports.getAllMore = (req, res) => {
     });
 };
 // ============================================================
-
-exports.getOne = (req, res) => {
-  let answers = [];
-  db.collection("questions")
+const getUserId = async (req) =>{
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    idToken = req.headers.authorization.split("Bearer ")[1];
+  } else {
+    return false;
+  }
+  return await admin
+    .auth()
+    .verifyIdToken(idToken)
+    .catch((err) => {
+      console.log(err)
+      return false;
+    });
+}
+exports.getOne = async (req, res) => {
+  let answers = {};
+  await db.collection("questions")
     .doc(req.params.qID)
     .get()
-    .then((doc) => {
-      const resQuestion = doc.data();
+    .then(async (doc) => {
+      let resQuestion = doc.data();
       resQuestion.qID = doc.id;
-
-      db.collection("answers")
+      let user = await getUserId(req)
+      if (user) {
+        let qvote = await checkVote(doc.id,user.uid)
+        resQuestion.qvote = qvote
+      }
+      resQuestion.answers = await db.collection("answers")
         .where("questionID", "==", doc.id)
         .orderBy("votesCount", "desc")
         .get()
         .then(async (data) => {
-          data.forEach(async (answerDoc) => {
-            answers.push({
+          await Promise.all(data.docs.map(async (answerDoc) => {
+            let avote = 0;
+            answers[answerDoc.id] = {
               aID: answerDoc.id,
+              avote,
               ...answerDoc.data(),
-            });
-          });
+            };
+            if (user) {
+              avote = await checkVote(answerDoc.id,user.uid)
+              answers[answerDoc.id].avote = avote
+            }
+          }));
         })
         .then(() => {
-          console.log("2 finished");
-          resQuestion.answers = answers;
-          return res.json(resQuestion);
+          return answers
         });
+        return res.json(resQuestion)
     })
     .catch((err) => {
       res.status(500).json({ error: "somethig went wrong" });
