@@ -20,15 +20,15 @@ exports.add = async (req, res) => {
               reportsCount: 0,
             };
             let id = newQuestion.title.replace(/ /g,'-')
-            db.collection("questions").doc().set(newQuestion)
+            db.collection("questions").doc(id).set(newQuestion)
               .then((doc) => {
                 const resQuestion = newQuestion;
-                resQuestion.qID = doc.id;
+                resQuestion.qID = id;
                 res.json(resQuestion);
               });
           });
       } else
-        return res.status(244).json({ error: "عملاتك لا تكفي لاضافة سؤال" });
+        return res.status(405).json({ error: "عملاتك لا تكفي لاضافة سؤال" });
     })
     .catch(function (error) {
       console.error(error);
