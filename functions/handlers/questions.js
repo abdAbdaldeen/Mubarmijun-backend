@@ -9,7 +9,7 @@ exports.add = async (req, res) => {
       if (doc.data().coins >= 5) {
         db.doc("/coins/" + req.user.uid)
           .update({ coins: doc.data().coins - 5 })
-          .then(() => {
+          .then(async() => {
             const newQuestion = {
               userID: req.user.uid,
               groupID: req.body.groupID,
@@ -20,11 +20,24 @@ exports.add = async (req, res) => {
               reportsCount: 0,
             };
             let id = newQuestion.title.replace(/ /g,'-')
-            db.collection("questions").doc(id).set(newQuestion)
+            let qDoc = db.collection("questions").doc(id)
+            await qDoc
+              .get()
               .then((doc) => {
-                const resQuestion = newQuestion;
-                resQuestion.qID = id;
-                res.json(resQuestion);
+                if (doc.exists) {
+                  res.status(409).json({ error: "هذا السؤال موجود من قبل", id });
+                } else {
+                  qDoc.set(newQuestion)
+                    .then((doc) => {
+                      const resQuestion = newQuestion;
+                      resQuestion.qID = id;
+                      res.json(resQuestion);
+                    });
+                }
+              })
+              .catch((err) => {
+                res.status(500).json({ error: "somethig went wrong" });
+                console.error(err);
               });
           });
       } else
