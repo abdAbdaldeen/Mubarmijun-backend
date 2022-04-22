@@ -1,4 +1,5 @@
 const { db, admin } = require("../util/admin");
+const { getDate } = require("../util/common");
 // const { getUserId } = require("../util/fbAuth");
 const { checkVote } = require("../util/votes");
 
@@ -31,6 +32,7 @@ exports.add = async (req, res) => {
                     .then((doc) => {
                       const resQuestion = newQuestion;
                       resQuestion.qID = id;
+                      resQuestion.createdAt = getDate(resQuestion.createdAt);
                       res.json(resQuestion);
                     });
                 }
@@ -64,6 +66,7 @@ exports.getFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
       });
@@ -88,6 +91,7 @@ exports.getMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
       });
@@ -112,6 +116,7 @@ exports.getAllFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
       });
@@ -135,6 +140,7 @@ exports.getAllMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
       });
@@ -171,6 +177,7 @@ exports.getOne = async (req, res) => {
     .then(async (doc) => {
       let resQuestion = doc.data();
       resQuestion.qID = doc.id;
+      resQuestion.createdAt = getDate(resQuestion.createdAt);
       let user = await getUserId(req)
       if (user) {
         let qvote = await checkVote(doc.id,user.uid)
@@ -187,6 +194,7 @@ exports.getOne = async (req, res) => {
               aID: answerDoc.id,
               avote,
               ...answerDoc.data(),
+              createdAt: getDate(answerDoc.data().createdAt)
             };
             if (user) {
               avote = await checkVote(answerDoc.id,user.uid)

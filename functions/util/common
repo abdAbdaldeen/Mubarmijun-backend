@@ -1,0 +1,4 @@
+
+exports.getDate = (iso) =>{
+  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn',{year: 'numeric', month: 'short', day: 'numeric'});
+}
