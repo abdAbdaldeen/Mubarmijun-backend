@@ -110,12 +110,16 @@ exports.login = (req, res) => {
     });
 };
 // ========================= get user data
-exports.getUserData = (req, res) => {
-  admin
+exports.getUserData = async (req, res) => {
+  await admin
     .auth()
     .getUser(req.user.uid)
-    .then((userRecord) => {
-      return res.json(userRecord);
+    .then(async(userRecord) => {
+      await db.doc("/coins/" + userRecord.uid)
+      .get()
+      .then(doc=>{
+        return res.json({...userRecord, coins:doc.data().coins});
+      })
     })
     .catch((err) => {
       console.error(err);
