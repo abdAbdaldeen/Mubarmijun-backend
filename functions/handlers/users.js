@@ -83,11 +83,17 @@ exports.login = (req, res) => {
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then(async(data) => {
+      let token = await data.user.getIdToken()
+      let isAdmin = await data.user.getIdTokenResult().then(idTokenResult => {
+        return idTokenResult.claims.admin
+      });
+
       return {
-        token: await data.user.getIdToken(),
+        token,
         email:  data.user.email,
         displayName:  data.user.displayName,
         photoURL:  data.user.photoURL,
+        isAdmin,
       };
     })
     .then((data) => {

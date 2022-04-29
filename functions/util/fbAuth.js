@@ -20,7 +20,6 @@ module.exports = (req, res, next) => {
           .getUser(decodedToken.uid)
           .then((userRecord) => {
             req.user = userRecord
-            console.log(userRecord)
             return next();
           })
           .catch((err) => {
