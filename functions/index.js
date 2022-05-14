@@ -10,6 +10,7 @@ const answersRouter = require("./routes/answers");
 const usersRouter = require("./routes/users");
 const votesRouter = require("./routes/votes");
 const { getGroup } = require("./handlers/groups");
+const { getQuestions, deleteQ } = require("./handlers/admin/questions");
 
 app.use(cors({origin: true}))
 // ************** public **********************
@@ -25,5 +26,8 @@ app.use("/votes", votesRouter);
 app.post("/admin/makeAdmin", fbAuth, fbAdminAuth, makeAdmin);
 app.post("/groups/add", fbAuth, fbAdminAuth, addGroup);
 app.get("/groups/get", getGroup);
+// dashboard
+app.get("/admin/questions/get", fbAuth, fbAdminAuth, getQuestions);
+app.post("/admin/questions/delete", fbAuth, fbAdminAuth, deleteQ);
 
 exports.api = functions.region("europe-west1").https.onRequest(app);
