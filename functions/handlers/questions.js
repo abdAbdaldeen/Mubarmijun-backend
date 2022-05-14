@@ -2,6 +2,7 @@ const { db, admin } = require("../util/admin");
 const { getDate } = require("../util/common");
 // const { getUserId } = require("../util/fbAuth");
 const { checkVote } = require("../util/votes");
+var { parse } = require('node-html-parser');
 
 exports.add = async (req, res) => {
   db.doc("/coins/" + req.user.uid)
@@ -66,6 +67,7 @@ exports.getFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
           createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
@@ -91,6 +93,7 @@ exports.getMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
           createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
@@ -116,6 +119,7 @@ exports.getAllFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
           createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
@@ -140,6 +144,7 @@ exports.getAllMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
           createdAt: getDate(doc.data().createdAt)
         });
         lastKey = doc.data().createdAt;
@@ -335,3 +340,15 @@ exports.update = (req, res) => {
       console.error(err);
     });
 };
+
+
+
+function getDescription(body) {
+  const root = parse(`<body id="root">${body}</body>`);
+  let text = root.querySelector("body#root").text
+  const maxLength = 150
+  if (text && text.length > maxLength) {
+    return text.slice(0, maxLength) + '...'
+  }
+  return text
+}
