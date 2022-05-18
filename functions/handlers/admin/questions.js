@@ -358,6 +358,27 @@ exports.getQuestions = async (req, res) => {
     console.error(error);
   }
 };
+// ======== search
+exports.getOne = async (req, res) => {
+  try {
+    let doc = await db.collection("questions").doc(req.query.qID).get();
+    let question = doc.data();
+    question.qID = doc.id;
+    await admin
+      .auth()
+      .getUser(question.userID)
+      .then((userRecord) => {
+        question.userRecord = userRecord;
+      })
+      .catch((error) => {
+        question.userRecord = {};
+      });
+    return res.json({ question });
+  } catch (error) {
+    res.status(500).json({ error: "somethig went wrong" });
+    console.error(error);
+  }
+};
 // ============================================================
 exports.deleteQ = (req, res) => {
   let qDoc = db.collection("questions").doc(req.body.qID);
