@@ -2,7 +2,7 @@ const { db, admin } = require("../util/admin");
 const { getDate } = require("../util/common");
 // const { getUserId } = require("../util/fbAuth");
 const { checkVote } = require("../util/votes");
-var { parse } = require('node-html-parser');
+var { parse } = require("node-html-parser");
 
 exports.add = async (req, res) => {
   db.doc("/coins/" + req.user.uid)
@@ -11,7 +11,7 @@ exports.add = async (req, res) => {
       if (doc.data().coins >= 5) {
         db.doc("/coins/" + req.user.uid)
           .update({ coins: doc.data().coins - 5 })
-          .then(async() => {
+          .then(async () => {
             const newQuestion = {
               userID: req.user.uid,
               groupID: req.body.groupID,
@@ -21,21 +21,22 @@ exports.add = async (req, res) => {
               votesCount: 0,
               reportsCount: 0,
             };
-            let id = newQuestion.title.replace(/ /g,'-')
-            let qDoc = db.collection("questions").doc(id)
+            let id = newQuestion.title.replace(/ /g, "-");
+            let qDoc = db.collection("questions").doc(id);
             await qDoc
               .get()
               .then((doc) => {
                 if (doc.exists) {
-                  res.status(409).json({ error: "هذا السؤال موجود من قبل", id });
+                  res
+                    .status(409)
+                    .json({ error: "هذا السؤال موجود من قبل", id });
                 } else {
-                  qDoc.set(newQuestion)
-                    .then((doc) => {
-                      const resQuestion = newQuestion;
-                      resQuestion.qID = id;
-                      resQuestion.createdAt = getDate(resQuestion.createdAt);
-                      res.json(resQuestion);
-                    });
+                  qDoc.set(newQuestion).then((doc) => {
+                    const resQuestion = newQuestion;
+                    resQuestion.qID = id;
+                    resQuestion.createdAt = getDate(resQuestion.createdAt);
+                    res.json(resQuestion);
+                  });
                 }
               })
               .catch((err) => {
@@ -68,7 +69,7 @@ exports.getFirst = (req, res) => {
           qID: doc.id,
           ...doc.data(),
           description: getDescription(doc.data().body),
-          createdAt: getDate(doc.data().createdAt)
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -94,7 +95,7 @@ exports.getMore = (req, res) => {
           qID: doc.id,
           ...doc.data(),
           description: getDescription(doc.data().body),
-          createdAt: getDate(doc.data().createdAt)
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -107,6 +108,43 @@ exports.getMore = (req, res) => {
 };
 // ============================================================
 // ============================================================
+exports.get = async (req, res) => {
+  try {
+    if (!req.query.key) {
+      data = await db
+        .collection("questions")
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
+        .orderBy("createdAt", "desc")
+        .limit(10)
+        .get();
+    } else {
+      data = await db
+        .collection("questions")
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
+        .orderBy("createdAt", "desc")
+        .startAfter(req.query.key)
+        .limit(10)
+        .get();
+    }
+    let questions = [];
+    let lastKey = "";
+    data.forEach((doc) => {
+      questions.push({
+        qID: doc.id,
+        ...doc.data(),
+        description: getDescription(doc.data().body),
+        createdAt: getDate(doc.data().createdAt),
+      });
+      lastKey = doc.data().createdAt;
+    });
+    return res.json({ questions, lastKey });
+  } catch (error) {
+    res.status(500).json({ error: "somethig went wrong" });
+    console.error(error);
+  }
+};
 exports.getAllFirst = (req, res) => {
   db.collection("questions")
     .orderBy("createdAt", "desc")
@@ -120,7 +158,7 @@ exports.getAllFirst = (req, res) => {
           qID: doc.id,
           ...doc.data(),
           description: getDescription(doc.data().body),
-          createdAt: getDate(doc.data().createdAt)
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -145,7 +183,7 @@ exports.getAllMore = (req, res) => {
           qID: doc.id,
           ...doc.data(),
           description: getDescription(doc.data().body),
-          createdAt: getDate(doc.data().createdAt)
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -157,7 +195,7 @@ exports.getAllMore = (req, res) => {
     });
 };
 // ============================================================
-const getUserId = async (req) =>{
+const getUserId = async (req) => {
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer ")
@@ -170,47 +208,51 @@ const getUserId = async (req) =>{
     .auth()
     .verifyIdToken(idToken)
     .catch((err) => {
-      console.log(err)
+      console.log(err);
       return false;
     });
-}
+};
 exports.getOne = async (req, res) => {
   let answers = {};
-  await db.collection("questions")
+  await db
+    .collection("questions")
     .doc(req.params.qID)
     .get()
     .then(async (doc) => {
       let resQuestion = doc.data();
       resQuestion.qID = doc.id;
       resQuestion.createdAt = getDate(resQuestion.createdAt);
-      let user = await getUserId(req)
+      let user = await getUserId(req);
       if (user) {
-        let qvote = await checkVote(doc.id,user.uid)
-        resQuestion.qvote = qvote
+        let qvote = await checkVote(doc.id, user.uid);
+        resQuestion.qvote = qvote;
       }
-      resQuestion.answers = await db.collection("answers")
+      resQuestion.answers = await db
+        .collection("answers")
         .where("questionID", "==", doc.id)
         .orderBy("votesCount", "desc")
         .get()
         .then(async (data) => {
-          await Promise.all(data.docs.map(async (answerDoc) => {
-            let avote = 0;
-            answers[answerDoc.id] = {
-              aID: answerDoc.id,
-              avote,
-              ...answerDoc.data(),
-              createdAt: getDate(answerDoc.data().createdAt)
-            };
-            if (user) {
-              avote = await checkVote(answerDoc.id,user.uid)
-              answers[answerDoc.id].avote = avote
-            }
-          }));
+          await Promise.all(
+            data.docs.map(async (answerDoc) => {
+              let avote = 0;
+              answers[answerDoc.id] = {
+                aID: answerDoc.id,
+                avote,
+                ...answerDoc.data(),
+                createdAt: getDate(answerDoc.data().createdAt),
+              };
+              if (user) {
+                avote = await checkVote(answerDoc.id, user.uid);
+                answers[answerDoc.id].avote = avote;
+              }
+            })
+          );
         })
         .then(() => {
-          return answers
+          return answers;
         });
-        return res.json(resQuestion)
+      return res.json(resQuestion);
     })
     .catch((err) => {
       res.status(500).json({ error: "somethig went wrong" });
@@ -341,14 +383,12 @@ exports.update = (req, res) => {
     });
 };
 
-
-
 function getDescription(body) {
   const root = parse(`<body id="root">${body}</body>`);
-  let text = root.querySelector("body#root").text
-  const maxLength = 150
+  let text = root.querySelector("body#root").text;
+  const maxLength = 150;
   if (text && text.length > maxLength) {
-    return text.slice(0, maxLength) + '...'
+    return text.slice(0, maxLength) + "...";
   }
-  return text
+  return text;
 }
