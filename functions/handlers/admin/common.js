@@ -33,3 +33,16 @@ exports.blockUser = async (req, res) => {
       console.error(err);
     });
 };
+
+exports.deleteDoc = (req, res) => {
+  let qDoc = db.collection(req.body.collection).doc(req.body.docID);
+  qDoc
+    .delete()
+    .then(() => {
+      return res.json("Successfully deleted");
+    })
+    .catch((err) => {
+      res.status(500).json({ error: "somethig went wrong" });
+      console.error(err);
+    });
+};

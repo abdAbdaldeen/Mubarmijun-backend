@@ -11,7 +11,8 @@ const usersRouter = require("./routes/users");
 const votesRouter = require("./routes/votes");
 const { getGroup } = require("./handlers/groups");
 const { getQuestions, deleteQ, getOne } = require("./handlers/admin/questions");
-const { hideDoc, blockUser } = require("./handlers/admin/common");
+const { hideDoc, blockUser, deleteDoc } = require("./handlers/admin/common");
+const { getQAnswers } = require("./handlers/admin/answers");
 
 app.use(cors({origin: true}))
 // ************** public **********************
@@ -32,8 +33,12 @@ app.get("/admin/questions/get", fbAuth, fbAdminAuth, getQuestions);
 app.post("/admin/questions/delete", fbAuth, fbAdminAuth, deleteQ);
 app.get("/admin/questions/getOne", fbAuth, fbAdminAuth, getOne);
 
+app.get("/admin/answers/get", fbAuth, fbAdminAuth, getQAnswers);
+
+
 app.post("/admin/hideDoc", fbAuth, fbAdminAuth, hideDoc);
 app.get("/admin/blockUser", fbAuth, fbAdminAuth, blockUser);
+app.post("/admin/deleteDoc", fbAuth, fbAdminAuth, deleteDoc);
 
 
 exports.api = functions.region("europe-west1").https.onRequest(app);
