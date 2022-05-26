@@ -1,7 +1,7 @@
 const functions = require("firebase-functions");
 const app = require("express")();
 const cors = require('cors');
-const { makeAdmin } = require("./handlers/admin/users");
+const { makeAdmin, getUsers } = require("./handlers/admin/users");
 const { addGroup } = require("./handlers/admin/groups");
 const fbAdminAuth = require("./util/fbAdminAuth");
 const fbAuth = require("./util/fbAuth");
@@ -25,7 +25,6 @@ app.use("/answers", answersRouter);
 app.use("/votes", votesRouter);
 // ************** admin **********************
 // ============== user
-app.post("/admin/makeAdmin", fbAuth, fbAdminAuth, makeAdmin);
 app.post("/groups/add", fbAuth, fbAdminAuth, addGroup);
 app.get("/groups/get", getGroup);
 // dashboard
@@ -39,6 +38,9 @@ app.get("/admin/answers/get", fbAuth, fbAdminAuth, getQAnswers);
 app.post("/admin/hideDoc", fbAuth, fbAdminAuth, hideDoc);
 app.get("/admin/blockUser", fbAuth, fbAdminAuth, blockUser);
 app.post("/admin/deleteDoc", fbAuth, fbAdminAuth, deleteDoc);
+
+app.post("/admin/users/addAdmin", fbAuth, fbAdminAuth, makeAdmin);
+app.get("/admin/users/get", fbAuth, fbAdminAuth, getUsers);
 
 
 exports.api = functions.region("europe-west1").https.onRequest(app);
