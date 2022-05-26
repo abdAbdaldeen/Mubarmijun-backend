@@ -14,3 +14,11 @@ exports.checkVote = async (docID,uid) => {
     });
     return vote;
 };
+
+exports.checkReport = async (docID,uid) => {
+  let snapshot = await db.collection("reports")
+    .where("docID", "==", docID)
+    .where("userID", "==", uid)
+    .get()
+    return !snapshot.empty;
+};

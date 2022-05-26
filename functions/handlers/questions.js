@@ -1,7 +1,7 @@
 const { db, admin } = require("../util/admin");
 const { getDate } = require("../util/common");
 // const { getUserId } = require("../util/fbAuth");
-const { checkVote } = require("../util/votes");
+const { checkVote, checkReport } = require("../util/votes");
 var { parse } = require("node-html-parser");
 
 exports.add = async (req, res) => {
@@ -225,7 +225,10 @@ exports.getOne = async (req, res) => {
       let user = await getUserId(req);
       if (user) {
         let qvote = await checkVote(doc.id, user.uid);
+        let aReport = await checkReport(doc.id, user.uid);
+
         resQuestion.qvote = qvote;
+        resQuestion.aReport = aReport;
       }
       resQuestion.answers = await db
         .collection("answers")
@@ -236,15 +239,20 @@ exports.getOne = async (req, res) => {
           await Promise.all(
             data.docs.map(async (answerDoc) => {
               let avote = 0;
+              let aReport = 0;
               answers[answerDoc.id] = {
                 aID: answerDoc.id,
                 avote,
+                aReport,
                 ...answerDoc.data(),
                 createdAt: getDate(answerDoc.data().createdAt),
               };
               if (user) {
                 avote = await checkVote(answerDoc.id, user.uid);
+                aReport = await checkReport(answerDoc.id, user.uid);
+
                 answers[answerDoc.id].avote = avote;
+                answers[answerDoc.id].aReport = aReport;
               }
             })
           );

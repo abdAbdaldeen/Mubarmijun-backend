@@ -13,21 +13,21 @@ const { getGroup } = require("./handlers/groups");
 const { getQuestions, deleteQ, getOne } = require("./handlers/admin/questions");
 const { hideDoc, blockUser, deleteDoc } = require("./handlers/admin/common");
 const { getQAnswers } = require("./handlers/admin/answers");
+const { report } = require("./handlers/reports");
 
 app.use(cors({origin: true}))
 // ************** public **********************
-// ============== user
 
 app.use("/users", usersRouter);
-// ================== questions
 app.use("/questions", questionsRouter);
 app.use("/answers", answersRouter);
 app.use("/votes", votesRouter);
-// ************** admin **********************
-// ============== user
+app.post("/report", fbAuth, report);
+
+
+// ************** admin dashboard **********************
 app.post("/groups/add", fbAuth, fbAdminAuth, addGroup);
 app.get("/groups/get", getGroup);
-// dashboard
 app.get("/admin/questions/get", fbAuth, fbAdminAuth, getQuestions);
 app.post("/admin/questions/delete", fbAuth, fbAdminAuth, deleteQ);
 app.get("/admin/questions/getOne", fbAuth, fbAdminAuth, getOne);
