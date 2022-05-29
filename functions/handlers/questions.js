@@ -233,6 +233,8 @@ exports.getOne = async (req, res) => {
       resQuestion.answers = await db
         .collection("answers")
         .where("questionID", "==", doc.id)
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
         .orderBy("votesCount", "desc")
         .get()
         .then(async (data) => {
