@@ -380,7 +380,7 @@ exports.getOne = async (req, res) => {
   }
 };
 // ============================================================
-exports.deleteQ = (req, res) => {
+exports.deleteQ = async (req, res) => {
   let qDoc = db.collection("questions").doc(req.body.qID);
   qDoc
     .delete()
@@ -391,4 +391,16 @@ exports.deleteQ = (req, res) => {
       res.status(500).json({ error: "somethig went wrong" });
       console.error(err);
     });
+  const answers = await db
+    .collection("answers")
+    .where("questionID", "==", req.body.qID)
+    .get();
+
+  const batch = db.batch();
+
+  answers.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  await batch.commit();
 };
