@@ -25,9 +25,9 @@ app.use("/votes", votesRouter);
 app.post("/report", fbAuth, report);
 
 
-// ************** admin dashboard **********************
-app.post("/groups/add", fbAuth, fbAdminAuth, addGroup);
 app.get("/groups/get", getGroup);
+// ************** admin dashboard **********************
+app.post("/admin/groups/add", fbAuth, fbAdminAuth, addGroup);
 app.get("/admin/questions/get", fbAuth, fbAdminAuth, getQuestions);
 app.post("/admin/questions/delete", fbAuth, fbAdminAuth, deleteQ);
 app.get("/admin/questions/getOne", fbAuth, fbAdminAuth, getOne);
