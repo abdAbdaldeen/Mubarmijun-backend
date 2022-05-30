@@ -59,7 +59,7 @@ exports.getFirst = (req, res) => {
   db.collection("questions")
     .where("groupID", "==", req.params.groupID)
     .orderBy("createdAt", "desc")
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -85,7 +85,7 @@ exports.getMore = (req, res) => {
     .where("groupID", "==", req.body.groupID)
     .orderBy("createdAt", "desc")
     .startAfter(req.body.key)
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -148,7 +148,7 @@ exports.get = async (req, res) => {
 exports.getAllFirst = (req, res) => {
   db.collection("questions")
     .orderBy("createdAt", "desc")
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -173,7 +173,7 @@ exports.getAllMore = (req, res) => {
   db.collection("questions")
     .orderBy("createdAt", "desc")
     .startAfter(req.body.key)
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -229,6 +229,7 @@ exports.getOne = async (req, res) => {
 
         resQuestion.qvote = qvote;
         resQuestion.aReport = aReport;
+        resQuestion.isOwner = resQuestion.userID == user.uid;
       }
       resQuestion.answers = await db
         .collection("answers")
@@ -255,6 +256,7 @@ exports.getOne = async (req, res) => {
 
                 answers[answerDoc.id].avote = avote;
                 answers[answerDoc.id].aReport = aReport;
+                answers[answerDoc.id].isOwner = answers[answerDoc.id].userID == user.uid;
               }
             })
           );
