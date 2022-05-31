@@ -1,4 +1,6 @@
 const { db, admin } = require("../util/admin");
+const { getDate } = require("../util/common");
+
 // const firebase = require('firebase');
 // const config = require('../util/config');
 // const { validateSignupData, validateLoginData, reduceUserDetails } = require('../util/validators');
@@ -20,6 +22,9 @@ exports.add = (req, res) => {
     .then((doc) => {
       const resAnswer = newAnswer;
       resAnswer.aID = doc.id;
+      resAnswer.isOwner = true;
+      resAnswer.createdAt = getDate(resAnswer.createdAt);
+
       res.json(resAnswer);
     })
     .catch((err) => {
