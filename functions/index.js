@@ -14,7 +14,7 @@ const { getQuestions, deleteQ, getOne } = require("./handlers/admin/questions");
 const { hideDoc, blockUser, deleteDoc } = require("./handlers/admin/common");
 const { getQAnswers } = require("./handlers/admin/answers");
 const { report } = require("./handlers/reports");
-const { deleteUserDoc } = require("./handlers/common");
+const { deleteUserDoc, getIDs } = require("./handlers/common");
 
 app.use(cors({origin: true}))
 // ************** public **********************
@@ -25,6 +25,7 @@ app.use("/answers", answersRouter);
 app.use("/votes", votesRouter);
 app.post("/report", fbAuth, report);
 app.post("/delete", fbAuth, deleteUserDoc);
+app.get("/getIDs", getIDs);
 
 
 

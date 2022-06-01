@@ -55,3 +55,20 @@ exports.update = (req, res) => {
       console.error(err);
     });
 };
+
+exports.getIDs = async (req, res) => {
+  await db
+    .collection(req.query.collection)
+    .get()
+    .then((data) => {
+      let arr = [];
+      data.forEach((doc) => {
+        arr.push(doc.id);
+      });
+      return res.json(arr);
+    })
+    .catch((err) => {
+      res.status(500).json({ error: "somethig went wrong" });
+      console.error(err);
+    });
+};
