@@ -40,7 +40,7 @@ exports.signup = async (req, res) => {
             disabled: false,
           })
           .then(async (userRecord) => {
-            db.doc("/coins/" + userRecord.uid).set({ coins: 9999999 });
+            db.doc("/coins/" + userRecord.uid).set({ coins: 20 });
             firebase
               .auth()
               .signInWithEmailAndPassword(newUser.email, newUser.password)
