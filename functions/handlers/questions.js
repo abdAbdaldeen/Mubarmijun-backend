@@ -221,6 +221,9 @@ exports.getOne = async (req, res) => {
     .then(async (doc) => {
       let resQuestion = doc.data();
       resQuestion.qID = doc.id;
+      resQuestion.metaDescription = getDescription(resQuestion.body)
+      resQuestion.keywords = (resQuestion.title + "," + getDescription(resQuestion.body)).replace(/ |\n/g,",")
+
       resQuestion.createdAt = getDate(resQuestion.createdAt);
       let user = await getUserId(req);
       if (user) {
