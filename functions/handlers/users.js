@@ -87,13 +87,15 @@ exports.login = (req, res) => {
       let isAdmin = await data.user.getIdTokenResult().then(idTokenResult => {
         return idTokenResult.claims.admin
       });
-
+      let coinsDoc = await db.doc("/coins/" + data.user.uid)
+      .get()
       return {
         token,
         email:  data.user.email,
         displayName:  data.user.displayName,
         photoURL:  data.user.photoURL,
         isAdmin,
+        coins: coinsDoc.data().coins
       };
     })
     .then((data) => {
