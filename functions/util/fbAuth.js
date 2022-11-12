@@ -20,7 +20,6 @@ module.exports = (req, res, next) => {
           .getUser(decodedToken.uid)
           .then((userRecord) => {
             req.user = userRecord
-            console.log(userRecord)
             return next();
           })
           .catch((err) => {
@@ -37,3 +36,20 @@ module.exports = (req, res, next) => {
       return res.status(403).json(err);
     });
 };
+
+exports.getUserId = async (req) =>{
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    idToken = req.headers.authorization.split("Bearer ")[1];
+  } else {
+    return false;
+  }
+  return await admin
+    .auth()
+    .verifyIdToken(idToken)
+    .catch((err) => {
+      return false;
+    });
+}

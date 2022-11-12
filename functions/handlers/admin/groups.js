@@ -5,12 +5,12 @@ exports.addGroup = async (req, res) => {
     name: req.body.name,
     imgUrl: req.body.imgUrl,
   };
+  let id = newGroup.name.replace(/ /g, "-");
   db.collection("groups")
-    .add(newGroup)
-    .then((doc) => {
-      const resGroup = newGroup;
-      resGroup.gID = doc.id;
-      res.json(resGroup);
+    .doc(id)
+    .set(newGroup)
+    .then(() => {
+      res.json(newGroup);
     })
     .catch((err) => {
       res.status(500).json({ error: "somethig went wrong" });

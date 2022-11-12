@@ -23,7 +23,7 @@ exports.signup = async (req, res) => {
     .auth()
     .getUserByEmail(newUser.email)
     .then((user) => {
-      return res.status(400).json({ email: "this email is already taken" });
+      return res.status(400).json({ error: "البريد الإلكتروني مستخدم بالفعل" });
     })
     .catch(async (err) => {
       if (err.code === "auth/user-not-found") {
@@ -40,7 +40,7 @@ exports.signup = async (req, res) => {
             disabled: false,
           })
           .then(async (userRecord) => {
-            db.doc("/coins/" + userRecord.uid).set({ coins: 9999999 });
+            db.doc("/coins/" + userRecord.uid).set({ coins: 20 });
             firebase
               .auth()
               .signInWithEmailAndPassword(newUser.email, newUser.password)
@@ -56,20 +56,17 @@ exports.signup = async (req, res) => {
                 });
               })
               .catch((err) => {
-                console.log("else==========");
                 console.error(err);
-                return res.status(500).json({ error: err.code });
+                return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: err.code });
               });
             console.log(userRecord);
             console.log("Successfully created new user:", userRecord.uid);
           })
           .catch((error) => {
-            res.status(400).json(error);
-
-            console.log("Error creating new user:" + error.code);
+            return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: error.code });
           });
       } else {
-        res.status(500).json({ error: err.code });
+        return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى", errorCode: err.code });
       }
     });
 };
@@ -86,11 +83,19 @@ exports.login = (req, res) => {
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then(async(data) => {
+      let token = await data.user.getIdToken()
+      let isAdmin = await data.user.getIdTokenResult().then(idTokenResult => {
+        return idTokenResult.claims.admin
+      });
+      let coinsDoc = await db.doc("/coins/" + data.user.uid)
+      .get()
       return {
-        token: await data.user.getIdToken(),
+        token,
         email:  data.user.email,
         displayName:  data.user.displayName,
         photoURL:  data.user.photoURL,
+        isAdmin,
+        coins: coinsDoc.data().coins
       };
     })
     .then((data) => {
@@ -98,16 +103,31 @@ exports.login = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      return res.status(500).json({ error: err.code });
+      let errorMsg = ""
+      if (err.code === "auth/wrong-password") {
+        errorMsg = "كلمة المرور غير صحيحة"
+      } else if (err.code === "auth/user-not-found") {
+        errorMsg = "البريد الإلكتروني غير صحيح"
+      } else if (err.code === "auth/too-many-requests") {
+        errorMsg = "تم تعطيل الوصول إلى هذا الحساب مؤقتًا بسبب العديد من محاولات تسجيل الدخول الفاشلة. يمكنك استعادتها على الفور عن طريق إعادة تعيين كلمة المرور الخاصة بك أو يمكنك المحاولة مرة أخرى لاحقًا."
+      } 
+       else {
+        return res.status(500).json({ error: "عذرا لقد حدث خطأ غير معروف، يرجى المحاولة مرة أخرى" });
+      }
+      return res.status(400).json({ error: errorMsg });
     });
 };
 // ========================= get user data
-exports.getUserData = (req, res) => {
-  admin
+exports.getUserData = async (req, res) => {
+  await admin
     .auth()
     .getUser(req.user.uid)
-    .then((userRecord) => {
-      return res.json(userRecord);
+    .then(async(userRecord) => {
+      await db.doc("/coins/" + userRecord.uid)
+      .get()
+      .then(doc=>{
+        return res.json({...userRecord, coins:doc.data().coins});
+      })
     })
     .catch((err) => {
       console.error(err);

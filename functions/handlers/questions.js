@@ -1,4 +1,8 @@
 const { db, admin } = require("../util/admin");
+const { getDate } = require("../util/common");
+// const { getUserId } = require("../util/fbAuth");
+const { checkVote, checkReport } = require("../util/votes");
+var { parse } = require("node-html-parser");
 
 exports.add = async (req, res) => {
   db.doc("/coins/" + req.user.uid)
@@ -7,7 +11,7 @@ exports.add = async (req, res) => {
       if (doc.data().coins >= 5) {
         db.doc("/coins/" + req.user.uid)
           .update({ coins: doc.data().coins - 5 })
-          .then(() => {
+          .then(async () => {
             const newQuestion = {
               userID: req.user.uid,
               groupID: req.body.groupID,
@@ -17,16 +21,31 @@ exports.add = async (req, res) => {
               votesCount: 0,
               reportsCount: 0,
             };
-            let id = newQuestion.title.replace(/ /g,'-')
-            db.collection("questions").doc().set(newQuestion)
+            let id = newQuestion.title.replace(/ /g, "-");
+            let qDoc = db.collection("questions").doc(id);
+            await qDoc
+              .get()
               .then((doc) => {
-                const resQuestion = newQuestion;
-                resQuestion.qID = doc.id;
-                res.json(resQuestion);
+                if (doc.exists) {
+                  res
+                    .status(409)
+                    .json({ error: "هذا السؤال موجود من قبل", id });
+                } else {
+                  qDoc.set(newQuestion).then((doc) => {
+                    const resQuestion = newQuestion;
+                    resQuestion.qID = id;
+                    resQuestion.createdAt = getDate(resQuestion.createdAt);
+                    res.json(resQuestion);
+                  });
+                }
+              })
+              .catch((err) => {
+                res.status(500).json({ error: "somethig went wrong" });
+                console.error(err);
               });
           });
       } else
-        return res.status(244).json({ error: "عملاتك لا تكفي لاضافة سؤال" });
+        return res.status(405).json({ error: "عملاتك لا تكفي لاضافة سؤال" });
     })
     .catch(function (error) {
       console.error(error);
@@ -40,7 +59,7 @@ exports.getFirst = (req, res) => {
   db.collection("questions")
     .where("groupID", "==", req.params.groupID)
     .orderBy("createdAt", "desc")
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -49,6 +68,8 @@ exports.getFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -64,7 +85,7 @@ exports.getMore = (req, res) => {
     .where("groupID", "==", req.body.groupID)
     .orderBy("createdAt", "desc")
     .startAfter(req.body.key)
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -73,6 +94,8 @@ exports.getMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -85,10 +108,47 @@ exports.getMore = (req, res) => {
 };
 // ============================================================
 // ============================================================
+exports.get = async (req, res) => {
+  try {
+    if (!req.query.key) {
+      data = await db
+        .collection("questions")
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
+        .orderBy("createdAt", "desc")
+        .limit(10)
+        .get();
+    } else {
+      data = await db
+        .collection("questions")
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
+        .orderBy("createdAt", "desc")
+        .startAfter(req.query.key)
+        .limit(10)
+        .get();
+    }
+    let questions = [];
+    let lastKey = "";
+    data.forEach((doc) => {
+      questions.push({
+        qID: doc.id,
+        ...doc.data(),
+        description: getDescription(doc.data().body),
+        createdAt: getDate(doc.data().createdAt),
+      });
+      lastKey = doc.data().createdAt;
+    });
+    return res.json({ questions, lastKey });
+  } catch (error) {
+    res.status(500).json({ error: "somethig went wrong" });
+    console.error(error);
+  }
+};
 exports.getAllFirst = (req, res) => {
   db.collection("questions")
     .orderBy("createdAt", "desc")
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -97,6 +157,8 @@ exports.getAllFirst = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -111,7 +173,7 @@ exports.getAllMore = (req, res) => {
   db.collection("questions")
     .orderBy("createdAt", "desc")
     .startAfter(req.body.key)
-    .limit(6)
+    .limit(10)
     .get()
     .then((data) => {
       let questions = [];
@@ -120,6 +182,8 @@ exports.getAllMore = (req, res) => {
         questions.push({
           qID: doc.id,
           ...doc.data(),
+          description: getDescription(doc.data().body),
+          createdAt: getDate(doc.data().createdAt),
         });
         lastKey = doc.data().createdAt;
       });
@@ -131,33 +195,79 @@ exports.getAllMore = (req, res) => {
     });
 };
 // ============================================================
-
-exports.getOne = (req, res) => {
-  let answers = [];
-  db.collection("questions")
+const getUserId = async (req) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    idToken = req.headers.authorization.split("Bearer ")[1];
+  } else {
+    return false;
+  }
+  return await admin
+    .auth()
+    .verifyIdToken(idToken)
+    .catch((err) => {
+      console.log(err);
+      return false;
+    });
+};
+exports.getOne = async (req, res) => {
+  let answers = {};
+  await db
+    .collection("questions")
     .doc(req.params.qID)
     .get()
-    .then((doc) => {
-      const resQuestion = doc.data();
+    .then(async (doc) => {
+      let resQuestion = doc.data();
       resQuestion.qID = doc.id;
+      resQuestion.metaDescription = getDescription(resQuestion.body)
+      resQuestion.keywords = (resQuestion.title + "," + getDescription(resQuestion.body)).replace(/ |\n/g,",")
 
-      db.collection("answers")
+      resQuestion.createdAt = getDate(resQuestion.createdAt);
+      let user = await getUserId(req);
+      if (user) {
+        let qvote = await checkVote(doc.id, user.uid);
+        let aReport = await checkReport(doc.id, user.uid);
+
+        resQuestion.qvote = qvote;
+        resQuestion.aReport = aReport;
+        resQuestion.isOwner = resQuestion.userID == user.uid;
+      }
+      resQuestion.answers = await db
+        .collection("answers")
         .where("questionID", "==", doc.id)
+        .where("reportsCount", "<", 10)
+        .orderBy("reportsCount")
         .orderBy("votesCount", "desc")
         .get()
         .then(async (data) => {
-          data.forEach(async (answerDoc) => {
-            answers.push({
-              aID: answerDoc.id,
-              ...answerDoc.data(),
-            });
-          });
+          await Promise.all(
+            data.docs.map(async (answerDoc) => {
+              let avote = 0;
+              let aReport = 0;
+              answers[answerDoc.id] = {
+                aID: answerDoc.id,
+                avote,
+                aReport,
+                ...answerDoc.data(),
+                createdAt: getDate(answerDoc.data().createdAt),
+              };
+              if (user) {
+                avote = await checkVote(answerDoc.id, user.uid);
+                aReport = await checkReport(answerDoc.id, user.uid);
+
+                answers[answerDoc.id].avote = avote;
+                answers[answerDoc.id].aReport = aReport;
+                answers[answerDoc.id].isOwner = answers[answerDoc.id].userID == user.uid;
+              }
+            })
+          );
         })
         .then(() => {
-          console.log("2 finished");
-          resQuestion.answers = answers;
-          return res.json(resQuestion);
+          return answers;
         });
+      return res.json(resQuestion);
     })
     .catch((err) => {
       res.status(500).json({ error: "somethig went wrong" });
@@ -287,3 +397,13 @@ exports.update = (req, res) => {
       console.error(err);
     });
 };
+
+function getDescription(body) {
+  const root = parse(`<body id="root">${body}</body>`);
+  let text = root.querySelector("body#root").text;
+  const maxLength = 150;
+  if (text && text.length > maxLength) {
+    return text.slice(0, maxLength) + "...";
+  }
+  return text;
+}
